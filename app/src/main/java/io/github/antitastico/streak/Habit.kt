@@ -17,6 +17,13 @@ data class Habit(
 )
 
 /**
+ * Estilo visual de la app, seleccionable por el usuario.
+ * - MODERN: Material 3 con color (emojis, botones rellenos).
+ * - MINIMAL: blanco y negro, sin emojis (monogramas), estética mínima.
+ */
+enum class UiStyle { MODERN, MINIMAL }
+
+/**
  * Lista de ejemplo con la que arranca la app.
  * Por ahora vive solo en memoria: se reinicia al cerrar la app.
  * Cuando conectemos Room, estos datos se guardarán en el disco del teléfono.

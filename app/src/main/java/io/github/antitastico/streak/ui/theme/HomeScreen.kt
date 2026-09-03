@@ -1,10 +1,7 @@
 package io.github.antitastico.streak.ui.theme
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -14,19 +11,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.*
 import io.github.antitastico.streak.Habit
 import io.github.antitastico.streak.StreakState
+import io.github.antitastico.streak.UiStyle
 import kotlinx.coroutines.launch
 
+/** Inicial del hábito, para el estilo Minimal (en vez del emoji). */
+private fun monogram(name: String): String {
+    val t = name.trim()
+    return if (t.isEmpty()) "?" else t.substring(0, 1).uppercase()
+}
+
 /**
- * Pantalla principal.
- *
- * Usa un BottomSheetScaffold: una pantalla con una "hoja inferior" que se puede
- * arrastrar hacia arriba. 'sheetPeekHeight' es la parte que asoma cuando está
- * cerrada (el asa "Mis hábitos"). Al deslizar hacia arriba se expande.
+ * Icono del hábito: emoji en estilo MODERN, monograma (inicial en círculo) en MINIMAL.
  */
+@Composable
+private fun HabitIcon(
+    habit: Habit,
+    style: UiStyle,
+    emojiSize: TextUnit,
+    circleSize: Dp,
+    monoSize: TextUnit
+) {
+    if (style == UiStyle.MODERN) {
+        Text(habit.emoji, fontSize = emojiSize)
+    } else {
+        Box(
+            modifier = Modifier
+                .size(circleSize)
+                .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(monogram(habit.name), fontSize = monoSize, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(state: StreakState) {
@@ -37,12 +58,13 @@ fun HomeScreen(state: StreakState) {
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         sheetPeekHeight = 96.dp,
+        sheetContainerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.background,
         sheetContent = {
             HabitSheet(
                 state = state,
                 onSelect = { index ->
                     state.select(index)
-                    // Al elegir un hábito, colapsamos la hoja (vuelve al "peek").
                     scope.launch { scaffoldState.bottomSheetState.partialExpand() }
                 },
                 onAddClick = { showAddDialog = true }
@@ -51,6 +73,7 @@ fun HomeScreen(state: StreakState) {
     ) { innerPadding ->
         HomeContent(
             habit = state.current,
+            style = state.style,
             onCheckIn = { state.toggleToday() },
             modifier = Modifier.padding(innerPadding)
         )
@@ -67,31 +90,35 @@ fun HomeScreen(state: StreakState) {
     }
 }
 
-/** La Home minimalista: un solo hábito en foco. */
+/** La Home minimalista: un solo hábito en foco. Se adapta al estilo elegido. */
 @Composable
 private fun HomeContent(
     habit: Habit,
+    style: UiStyle,
     onCheckIn: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .statusBarsPadding()          // deja espacio bajo la barra de estado
+            .statusBarsPadding()
             .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 112.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceEvenly
     ) {
-        // Chip con emoji + nombre del hábito
+        // Chip con icono + nombre del hábito
         Surface(
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+            color = if (style == UiStyle.MODERN)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+            else
+                Color.Transparent
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
-                Text(habit.emoji, fontSize = 18.sp)
+                HabitIcon(habit, style, emojiSize = 18.sp, circleSize = 24.dp, monoSize = 12.sp)
                 Spacer(Modifier.width(8.dp))
                 Text(habit.name, style = MaterialTheme.typography.titleMedium)
             }
@@ -99,34 +126,36 @@ private fun HomeContent(
 
         // Racha grande
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("🔥", fontSize = 40.sp)
+            if (style == UiStyle.MODERN) {
+                Text("🔥", fontSize = 40.sp)
+            }
             Text(
                 text = habit.streak.toString(),
                 fontSize = 88.sp,
-                fontWeight = FontWeight.Light
+                fontWeight = if (style == UiStyle.MINIMAL) FontWeight.Thin else FontWeight.Light
             )
             Text(
-                // Plural resuelto: "1 día" vs "2 días"
                 text = if (habit.streak == 1) "día" else "días",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        // Botón de check-in. Cambia de aspecto si ya está hecho hoy.
-        if (habit.doneToday) {
-            FilledTonalButton(onClick = onCheckIn) {
-                Text("✓ Hecho hoy")
-            }
-        } else {
-            Button(onClick = onCheckIn) {
-                Text("Hecho hoy")
-            }
+        // Botón de check-in. En MINIMAL es "outline" y se rellena al marcar.
+        when {
+            style == UiStyle.MINIMAL && habit.doneToday ->
+                Button(onClick = onCheckIn) { Text("✓ Hecho hoy") }
+            style == UiStyle.MINIMAL ->
+                OutlinedButton(onClick = onCheckIn) { Text("Hecho hoy") }
+            habit.doneToday ->
+                FilledTonalButton(onClick = onCheckIn) { Text("✓ Hecho hoy") }
+            else ->
+                Button(onClick = onCheckIn) { Text("Hecho hoy") }
         }
     }
 }
 
-/** Contenido de la hoja inferior: lista de hábitos + botón para agregar. */
+/** Contenido de la hoja inferior: selector de estilo + lista de hábitos + agregar. */
 @Composable
 private fun HabitSheet(
     state: StreakState,
@@ -139,13 +168,29 @@ private fun HabitSheet(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp)
     ) {
+        // Selector de estilo (Moderno / Minimal)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(bottom = 4.dp)
+        ) {
+            FilterChip(
+                selected = state.style == UiStyle.MODERN,
+                onClick = { state.changeStyle(UiStyle.MODERN) },
+                label = { Text("Moderno") }
+            )
+            FilterChip(
+                selected = state.style == UiStyle.MINIMAL,
+                onClick = { state.changeStyle(UiStyle.MINIMAL) },
+                label = { Text("Minimal") }
+            )
+        }
+
         Text(
             text = "Mis hábitos",
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(vertical = 8.dp)
         )
 
-        // Recorremos los hábitos y dibujamos una fila por cada uno.
         state.habits.forEachIndexed { index, habit ->
             val selected = index == state.selectedIndex
             Row(
@@ -160,7 +205,7 @@ private fun HabitSheet(
                     .clickable { onSelect(index) }
                     .padding(12.dp)
             ) {
-                Text(habit.emoji, fontSize = 22.sp)
+                HabitIcon(habit, state.style, emojiSize = 22.sp, circleSize = 40.dp, monoSize = 16.sp)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(habit.name, style = MaterialTheme.typography.bodyLarge)
@@ -170,7 +215,10 @@ private fun HabitSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Text("🔥 ${habit.streak}", fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (state.style == UiStyle.MODERN) "🔥 ${habit.streak}" else "${habit.streak}",
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
 

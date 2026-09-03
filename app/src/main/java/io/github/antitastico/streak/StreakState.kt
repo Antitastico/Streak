@@ -30,6 +30,16 @@ class StreakState {
     val current: Habit
         get() = habits[selectedIndex]
 
+    // Estilo visual seleccionado (Moderno / Minimal). Por ahora en memoria;
+    // cuando agreguemos almacenamiento local se guardará como preferencia.
+    var style by mutableStateOf(UiStyle.MODERN)
+        private set
+
+    /** Cambiar el estilo visual de la app. */
+    fun changeStyle(newStyle: UiStyle) {
+        style = newStyle
+    }
+
     /** Elegir otro hábito desde la hoja inferior. */
     fun select(index: Int) {
         if (index in habits.indices) selectedIndex = index

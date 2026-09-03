@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import io.github.antitastico.streak.ui.theme.StreakTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -14,10 +13,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-
-            StreakTheme {
-                StreakApp()
-            }
+            // StreakApp aplica el tema (StreakTheme) según el estilo elegido.
+            StreakApp()
         }
     }
 }

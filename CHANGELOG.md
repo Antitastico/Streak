@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   plural) with a check-in button that toggles today's completion.
 - Bottom sheet (`BottomSheetScaffold`) listing all habits to switch between them,
   plus an "Add habit" dialog (name + emoji).
+- Switchable UI style (`UiStyle` MODERN/MINIMAL) via chips in the sheet: MINIMAL
+  uses a black-and-white theme, monogram icons instead of emoji, and an outlined
+  check-in button; MODERN keeps the Material 3 color look.
 
 ### Changed
 - `HomeScreen` reworked from a single counter into a focused-habit view backed by

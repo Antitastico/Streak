@@ -5,7 +5,7 @@ All notable changes to **Streak** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2026-09-04
 
 ### Added
 - First-run onboarding: enter your name and pick habits from a catalog or create
@@ -43,4 +43,5 @@ First feature-complete preview.
 - **Local persistence**: habits, check-in dates and the chosen style are saved to
   a JSON file in the app's private storage and restored on launch.
 
+[0.4.0]: https://github.com/Antitastico/Streak/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Antitastico/Streak/releases/tag/v0.3.0

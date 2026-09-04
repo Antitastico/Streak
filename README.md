@@ -37,9 +37,10 @@ to‑do list: your habits live one swipe away.
 - [x] Home screen with streak counter
 - [x] Multiple habits + bottom sheet + add-habit dialog
 - [x] Modern / Minimal interface styles
-- [ ] Local persistence (Room)
-- [ ] Calendar view
-- [ ] Statistics & consistency charts
+- [x] Local persistence (JSON on device)
+- [x] Calendar view
+- [x] Statistics & consistency charts
+- [ ] Room-backed storage
 - [ ] Release v1.0
 
 ## Tech stack
@@ -49,7 +50,8 @@ to‑do list: your habits live one swipe away.
 | Language | Kotlin |
 | UI | Jetpack Compose + Material 3 |
 | Architecture | MVVM (state holder → ViewModel) |
-| Persistence | Room *(planned)* |
+| Persistence | Local JSON file *(Room planned)* |
+| Dates & stats | `java.time` + pure Kotlin |
 | Min / Target SDK | 26 / 36 |
 
 ## Download
@@ -72,14 +74,18 @@ The APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
 
     app/src/main/java/io/github/antitastico/streak/
     ├── MainActivity.kt      # Entry point
-    ├── StreakApp.kt         # Applies the theme and hosts the screen
+    ├── StreakApp.kt         # Theme + bottom navigation
     ├── StreakState.kt       # State holder: habits, selection, style
     ├── Habit.kt             # Habit model + UiStyle enum
+    ├── HabitStats.kt        # Pure functions: streaks, consistency, charts
+    ├── HabitStore.kt        # Local JSON persistence
     └── ui/theme/
-        ├── HomeScreen.kt    # Home + habit sheet + add dialog
-        ├── Theme.kt         # Modern / Minimal themes
-        ├── Color.kt         # Color palette
-        └── Type.kt          # Typography
+        ├── HomeScreen.kt     # Home + habit sheet + add dialog
+        ├── CalendarScreen.kt # Monthly calendar
+        ├── StatsScreen.kt    # Stats, bar chart & heatmap
+        ├── Theme.kt          # Modern / Minimal themes
+        ├── Color.kt          # Color palette
+        └── Type.kt           # Typography
 
 ## License
 

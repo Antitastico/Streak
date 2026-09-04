@@ -5,30 +5,26 @@ All notable changes to **Streak** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-09-04
+
+First feature-complete preview.
 
 ### Added
-- Project setup: Android app scaffold with Kotlin, Jetpack Compose and Material 3.
-- `MainActivity` with edge-to-edge enabled, wrapping the UI in `StreakTheme`.
-- Material 3 theme with dynamic color support (Android 12+) and light/dark
-  baseline color schemes.
-- `Habit` data class and an initial in-memory sample list (`defaultHabits`).
-- `StreakState` state holder (the app "brain"): holds the habit list and the
-  selected habit, with `select`, `toggleToday` and `addHabit` actions.
-- Multi-habit home: a single focused habit (emoji, streak, correct `día`/`días`
-  plural) with a check-in button that toggles today's completion.
-- Bottom sheet (`BottomSheetScaffold`) listing all habits to switch between them,
-  plus an "Add habit" dialog (name + emoji).
-- Switchable UI style (`UiStyle` MODERN/MINIMAL) via chips in the sheet: MINIMAL
-  uses a black-and-white theme, monogram icons instead of emoji, and an outlined
-  check-in button; MODERN keeps the Material 3 color look.
+- Kotlin + Jetpack Compose + Material 3 app with edge-to-edge UI.
+- `Habit` model that stores the **set of check-in dates**; streaks and statistics
+  are derived from those dates.
+- **Focused-habit home screen**: one habit in view with a large streak counter
+  and a check-in button (correct `día`/`días` plural).
+- **Habit switcher & creator** in a modal bottom sheet (open by tapping the habit
+  name); create a habit with a name and an emoji.
+- **Bottom navigation** with three sections: Home, Calendar and Statistics.
+- **Calendar** screen: monthly view of the focused habit with completed days
+  highlighted, today ringed, and month navigation.
+- **Statistics** screen: current streak, longest streak, 30-day consistency and
+  total check-ins, plus a weekly bar chart and a 35-day heatmap.
+- **Switchable interface style** (`UiStyle` MODERN / MINIMAL): MINIMAL uses a
+  black-and-white theme, monogram icons and outlined buttons.
+- **Local persistence**: habits, check-in dates and the chosen style are saved to
+  a JSON file in the app's private storage and restored on launch.
 
-### Changed
-- `HomeScreen` reworked from a single counter into a focused-habit view backed by
-  `StreakState`, replacing the earlier "Entrené hoy" prototype.
-
-### Notes
-- State is still in memory only; it resets when the app closes. Persistence
-  (Room) and the Modern/Minimal interface styles are planned next.
-
-[Unreleased]: https://github.com/Antitastico/Streak/commits/main
+[0.3.0]: https://github.com/Antitastico/Streak/releases/tag/v0.3.0

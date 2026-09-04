@@ -15,19 +15,12 @@ import androidx.compose.ui.unit.*
 import io.github.antitastico.streak.Habit
 import io.github.antitastico.streak.StreakState
 import io.github.antitastico.streak.UiStyle
+import io.github.antitastico.streak.monogram
 import kotlinx.coroutines.launch
 
-/** Inicial del hábito, para el estilo Minimal (en vez del emoji). */
-private fun monogram(name: String): String {
-    val t = name.trim()
-    return if (t.isEmpty()) "?" else t.substring(0, 1).uppercase()
-}
-
-/**
- * Icono del hábito: emoji en estilo MODERN, monograma (inicial en círculo) en MINIMAL.
- */
+/** Icono del hábito: emoji en MODERN, monograma (inicial en círculo) en MINIMAL. */
 @Composable
-private fun HabitIcon(
+fun HabitIcon(
     habit: Habit,
     style: UiStyle,
     emojiSize: TextUnit,
@@ -48,79 +41,91 @@ private fun HabitIcon(
     }
 }
 
+/** Pantalla Inicio: el hábito en foco. Tocar el nombre abre la hoja de hábitos. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(state: StreakState) {
-    val scaffoldState = rememberBottomSheetScaffoldState()
+    var showSheet by remember { mutableStateOf(false) }
+    var showAdd by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
-    var showAddDialog by remember { mutableStateOf(false) }
 
-    BottomSheetScaffold(
-        scaffoldState = scaffoldState,
-        sheetPeekHeight = 96.dp,
-        sheetContainerColor = MaterialTheme.colorScheme.surface,
-        containerColor = MaterialTheme.colorScheme.background,
-        sheetContent = {
-            HabitSheet(
+    // Cierra la hoja con animación suave.
+    fun closeSheet() {
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            if (!sheetState.isVisible) showSheet = false
+        }
+    }
+
+    HomeContent(
+        habit = state.current,
+        style = state.style,
+        onCheckIn = { state.toggleToday() },
+        onOpenHabits = { showSheet = true }
+    )
+
+    if (showSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showSheet = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            HabitSheetContent(
                 state = state,
                 onSelect = { index ->
                     state.select(index)
-                    scope.launch { scaffoldState.bottomSheetState.partialExpand() }
+                    closeSheet()
                 },
-                onAddClick = { showAddDialog = true }
+                onAddClick = { showAdd = true }
             )
         }
-    ) { innerPadding ->
-        HomeContent(
-            habit = state.current,
-            style = state.style,
-            onCheckIn = { state.toggleToday() },
-            modifier = Modifier.padding(innerPadding)
-        )
     }
 
-    if (showAddDialog) {
+    if (showAdd) {
         AddHabitDialog(
-            onDismiss = { showAddDialog = false },
+            onDismiss = { showAdd = false },
             onCreate = { name, emoji ->
                 state.addHabit(name, emoji)
-                showAddDialog = false
+                showAdd = false
             }
         )
     }
 }
 
-/** La Home minimalista: un solo hábito en foco. Se adapta al estilo elegido. */
 @Composable
 private fun HomeContent(
     habit: Habit,
     style: UiStyle,
     onCheckIn: () -> Unit,
-    modifier: Modifier = Modifier
+    onOpenHabits: () -> Unit
 ) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 112.dp),
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceEvenly
     ) {
-        // Chip con icono + nombre del hábito
+        // Chip con icono + nombre (tocable para abrir la hoja de hábitos)
         Surface(
             shape = CircleShape,
             color = if (style == UiStyle.MODERN)
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-            else
-                Color.Transparent
+            else Color.Transparent,
+            border = if (style == UiStyle.MINIMAL)
+                androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            else null,
+            onClick = onOpenHabits
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                modifier = Modifier.padding(start = 12.dp, end = 14.dp, top = 8.dp, bottom = 8.dp)
             ) {
                 HabitIcon(habit, style, emojiSize = 18.sp, circleSize = 24.dp, monoSize = 12.sp)
                 Spacer(Modifier.width(8.dp))
                 Text(habit.name, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.width(6.dp))
+                Text("⌄", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -141,7 +146,7 @@ private fun HomeContent(
             )
         }
 
-        // Botón de check-in. En MINIMAL es "outline" y se rellena al marcar.
+        // Botón de check-in
         when {
             style == UiStyle.MINIMAL && habit.doneToday ->
                 Button(onClick = onCheckIn) { Text("✓ Hecho hoy") }
@@ -155,9 +160,9 @@ private fun HomeContent(
     }
 }
 
-/** Contenido de la hoja inferior: selector de estilo + lista de hábitos + agregar. */
+/** Contenido de la hoja modal: selector de estilo + lista de hábitos + agregar. */
 @Composable
-private fun HabitSheet(
+private fun HabitSheetContent(
     state: StreakState,
     onSelect: (Int) -> Unit,
     onAddClick: () -> Unit
@@ -165,13 +170,12 @@ private fun HabitSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
             .padding(horizontal = 16.dp)
+            .padding(bottom = 24.dp)
     ) {
-        // Selector de estilo (Moderno / Minimal)
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(bottom = 4.dp)
+            modifier = Modifier.padding(bottom = 8.dp)
         ) {
             FilterChip(
                 selected = state.style == UiStyle.MODERN,
@@ -229,11 +233,9 @@ private fun HabitSheet(
         ) {
             Text("+ Agregar hábito")
         }
-        Spacer(Modifier.height(20.dp))
     }
 }
 
-/** Diálogo para crear un hábito nuevo (nombre + icono). */
 @Composable
 private fun AddHabitDialog(
     onDismiss: () -> Unit,
@@ -278,10 +280,9 @@ private fun AddHabitDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = { onCreate(name, emoji) },
-                enabled = name.isNotBlank()
-            ) { Text("Crear") }
+            TextButton(onClick = { onCreate(name, emoji) }, enabled = name.isNotBlank()) {
+                Text("Crear")
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancelar") }

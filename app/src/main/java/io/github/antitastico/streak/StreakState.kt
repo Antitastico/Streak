@@ -4,66 +4,65 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import java.time.LocalDate
 
 /**
- * El "cerebro" de la app: guarda el ESTADO y la LÓGICA, separados de la pantalla.
- *
- * Todavía no es el ViewModel oficial de Android (ese llegará junto con Room, para
- * que el estado sobreviva rotaciones de pantalla y se guarde en disco), pero el
- * concepto es el mismo: la pantalla solo dibuja; aquí se decide qué pasa.
- *
- * Nota Compose: 'mutableStateListOf' y 'mutableStateOf' son valores "observables".
- * Cuando cambian, Compose vuelve a dibujar automáticamente lo que los usa
- * (parecido a cómo Streamlit re-ejecuta tu script cuando cambia session_state).
+ * El "cerebro" de la app: estado + lógica, separados de la pantalla.
+ * Ahora también PERSISTE: cada cambio se guarda en el archivo local (HabitStore).
  */
-class StreakState {
+class StreakState(private val store: HabitStore) {
 
-    // La lista de hábitos. Al ser 'mutableStateListOf', Compose escucha sus cambios.
-    val habits = mutableStateListOf<Habit>().apply { addAll(defaultHabits) }
+    val habits = mutableStateListOf<Habit>()
 
-    // Índice del hábito que se muestra en la Home. 'private set' = solo esta
-    // clase puede cambiarlo (la pantalla lo cambia llamando a select()).
     var selectedIndex by mutableStateOf(0)
         private set
 
-    // Atajo de lectura: el hábito que está en foco ahora mismo.
-    val current: Habit
-        get() = habits[selectedIndex]
-
-    // Estilo visual seleccionado (Moderno / Minimal). Por ahora en memoria;
-    // cuando agreguemos almacenamiento local se guardará como preferencia.
     var style by mutableStateOf(UiStyle.MODERN)
         private set
 
-    /** Cambiar el estilo visual de la app. */
-    fun changeStyle(newStyle: UiStyle) {
-        style = newStyle
+    init {
+        val loaded = store.load()
+        if (loaded != null && loaded.first.isNotEmpty()) {
+            habits.addAll(loaded.first)
+            style = loaded.second
+            selectedIndex = 0
+        } else {
+            // Primer arranque: datos de ejemplo.
+            habits.addAll(seedHabits())
+        }
     }
 
-    /** Elegir otro hábito desde la hoja inferior. */
+    val current: Habit
+        get() = habits[selectedIndex]
+
+    private fun persist() = store.save(habits.toList(), style)
+
     fun select(index: Int) {
         if (index in habits.indices) selectedIndex = index
     }
 
-    /**
-     * Marcar / desmarcar "hecho hoy" del hábito en foco.
-     * Reemplazamos el elemento por una copia modificada para que Compose lo note.
-     */
+    /** Marca o desmarca "hoy" en el hábito en foco. */
     fun toggleToday() {
         val h = habits[selectedIndex]
-        habits[selectedIndex] = if (h.doneToday) {
-            h.copy(streak = h.streak - 1, doneToday = false)
-        } else {
-            h.copy(streak = h.streak + 1, doneToday = true)
-        }
+        val today = LocalDate.now()
+        val newCompletions =
+            if (today in h.completions) h.completions - today
+            else h.completions + today
+        habits[selectedIndex] = h.copy(completions = newCompletions)
+        persist()
     }
 
-    /** Crear un hábito nuevo y dejarlo en foco. */
     fun addHabit(name: String, emoji: String) {
-        val cleanName = name.trim()
-        if (cleanName.isEmpty()) return
+        val clean = name.trim()
+        if (clean.isEmpty()) return
         val newId = (habits.maxOfOrNull { it.id } ?: 0) + 1
-        habits.add(Habit(id = newId, name = cleanName, emoji = emoji))
+        habits.add(Habit(id = newId, name = clean, emoji = emoji))
         selectedIndex = habits.lastIndex
+        persist()
+    }
+
+    fun changeStyle(newStyle: UiStyle) {
+        style = newStyle
+        persist()
     }
 }

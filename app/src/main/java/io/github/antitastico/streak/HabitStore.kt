@@ -6,17 +6,24 @@ import org.json.JSONObject
 import java.io.File
 import java.time.LocalDate
 
+/** Todo lo que persiste la app (se guarda en un JSON local). */
+data class StoreData(
+    val habits: List<Habit>,
+    val style: UiStyle,
+    val userName: String,
+    val onboarded: Boolean,
+    val defaultHabitId: Int?
+)
+
 /**
- * Guarda y carga los datos en un archivo JSON DENTRO del teléfono
- * (carpeta privada de la app). Usa org.json, que Android ya incluye:
- * sin librerías extra. Es nuestro "almacenamiento local".
+ * Guarda y carga los datos en un archivo JSON DENTRO del teléfono (carpeta privada
+ * de la app). Usa org.json, que Android ya incluye: sin librerías extra.
  */
 class HabitStore(context: Context) {
 
     private val file = File(context.applicationContext.filesDir, "streak_data.json")
 
-    /** Carga (hábitos + estilo) o null si aún no hay datos guardados. */
-    fun load(): Pair<List<Habit>, UiStyle>? {
+    fun load(): StoreData? {
         if (!file.exists()) return null
         return try {
             val root = JSONObject(file.readText())
@@ -28,42 +35,51 @@ class HabitStore(context: Context) {
                 val dates = (0 until comps.length())
                     .map { LocalDate.parse(comps.getString(it)) }
                     .toSet()
-                Habit(
-                    id = o.getInt("id"),
-                    name = o.getString("name"),
-                    emoji = o.getString("emoji"),
-                    completions = dates
-                )
+                Habit(o.getInt("id"), o.getString("name"), o.getString("emoji"), dates)
             }
-            habits to style
+            val defaultId = if (root.has("defaultHabitId") && !root.isNull("defaultHabitId"))
+                root.getInt("defaultHabitId") else null
+            StoreData(
+                habits = habits,
+                style = style,
+                userName = root.optString("userName", ""),
+                onboarded = root.optBoolean("onboarded", habits.isNotEmpty()),
+                defaultHabitId = defaultId
+            )
         } catch (e: Exception) {
             null
         }
     }
 
-    /** Guarda el estado actual en el archivo. */
-    fun save(habits: List<Habit>, style: UiStyle) {
+    fun save(
+        habits: List<Habit>,
+        style: UiStyle,
+        userName: String,
+        onboarded: Boolean,
+        defaultHabitId: Int?
+    ) {
         try {
             val arr = JSONArray()
             habits.forEach { h ->
                 val comps = JSONArray()
-                h.completions.forEach { comps.put(it.toString()) } // fecha ISO: 2026-09-04
-                arr.put(
-                    JSONObject().apply {
-                        put("id", h.id)
-                        put("name", h.name)
-                        put("emoji", h.emoji)
-                        put("completions", comps)
-                    }
-                )
+                h.completions.forEach { comps.put(it.toString()) }
+                arr.put(JSONObject().apply {
+                    put("id", h.id)
+                    put("name", h.name)
+                    put("emoji", h.emoji)
+                    put("completions", comps)
+                })
             }
             val root = JSONObject().apply {
                 put("style", style.name)
+                put("userName", userName)
+                put("onboarded", onboarded)
+                if (defaultHabitId != null) put("defaultHabitId", defaultHabitId)
                 put("habits", arr)
             }
             file.writeText(root.toString())
         } catch (e: Exception) {
-            // Si falla el guardado, no rompemos la app.
+            // No rompemos la app si falla el guardado.
         }
     }
 }

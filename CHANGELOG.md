@@ -5,6 +5,22 @@ All notable changes to **Streak** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- First-run onboarding: enter your name and pick habits from a catalog or create
+  your own.
+- Style toggle as a minimalist corner symbol (◐); the app now defaults to the
+  Minimal style.
+- Default habit: mark a habit with a star to choose which one opens on launch.
+- Tapping the streak number opens a centered overlay window with the calendar and
+  statistics, without leaving the home screen.
+
+### Changed
+- Removed the bottom navigation bar; the home screen is now the single main view.
+- Habit switching moved to a modal sheet opened from the habit name.
+- Persist the user's name, the chosen style and the default habit.
+
 ## [0.3.0] - 2026-09-04
 
 First feature-complete preview.

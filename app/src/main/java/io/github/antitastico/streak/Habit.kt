@@ -3,11 +3,8 @@ package io.github.antitastico.streak
 import java.time.LocalDate
 
 /**
- * Un hábito. Ahora, en vez de un simple contador, guardamos EL CONJUNTO DE FECHAS
- * en las que se marcó (completions). De ahí calculamos racha, calendario y stats.
- *
- * 'val' en todo (inmutable): para cambiarlo hacemos .copy(...), y así Compose y el
- * almacenamiento detectan el cambio.
+ * Un hábito. Guardamos EL CONJUNTO DE FECHAS de check-in (completions);
+ * la racha, el calendario y las estadísticas se calculan a partir de esas fechas.
  */
 data class Habit(
     val id: Int,
@@ -15,10 +12,7 @@ data class Habit(
     val emoji: String,
     val completions: Set<LocalDate> = emptySet()
 ) {
-    /** ¿Se marcó hoy? */
     val doneToday: Boolean get() = LocalDate.now() in completions
-
-    /** Racha actual (días consecutivos hasta hoy o ayer). */
     val streak: Int get() = HabitStats.currentStreak(completions, LocalDate.now())
 }
 
@@ -31,14 +25,16 @@ fun monogram(name: String): String {
     return if (t.isEmpty()) "?" else t.substring(0, 1).uppercase()
 }
 
-/** Hábitos de ejemplo para el primer arranque (con rachas ya "vividas"). */
-fun seedHabits(today: LocalDate = LocalDate.now()): List<Habit> {
-    fun lastDays(n: Int): Set<LocalDate> =
-        (0 until n).map { today.minusDays(it.toLong()) }.toSet()
-    return listOf(
-        Habit(1, "Correr", "🏃", lastDays(12)),
-        Habit(2, "Leer", "📖", lastDays(4)),
-        Habit(3, "Agua", "💧", lastDays(30)),
-        Habit(4, "Meditar", "🧘", lastDays(7))
-    )
-}
+/** Catálogo de hábitos sugeridos para el onboarding (nombre a emoji). */
+val predefinedHabits: List<Pair<String, String>> = listOf(
+    "Correr" to "🏃",
+    "Leer" to "📖",
+    "Beber agua" to "💧",
+    "Meditar" to "🧘",
+    "Entrenar" to "🏋️",
+    "Comer sano" to "🥗",
+    "Dormir bien" to "😴",
+    "Estudiar" to "🖊️",
+    "Caminar" to "🚶",
+    "Gratitud" to "🙏"
+)

@@ -25,9 +25,12 @@ to‑do list: your habits live one swipe away.
 
 - ✅ **Daily check-in** with an automatic streak counter
 - 🎯 **One focused habit** on the home screen — calm by design
-- 📿 **Swipe-up sheet** to switch habits or add a new one
-- 🎨 **Two switchable styles** — *Modern* (Material 3, color, emoji) and
-  *Minimal* (black & white, monograms)
+- 🚀 **First-run onboarding** — enter your name and pick or create habits
+- 🪟 **Progress overlay** — tap the streak number for a centered calendar + stats
+  window, without leaving home
+- ⭐ **Default habit** — choose which habit opens on launch
+- 🎨 **Two switchable styles** from a corner toggle — *Minimal* (default, black &
+  white, monograms) and *Modern* (Material 3, color, emoji)
 - 📴 **Offline-first** — your data stays on your device
 - 🆓 **Open source**
 
@@ -40,6 +43,7 @@ to‑do list: your habits live one swipe away.
 - [x] Local persistence (JSON on device)
 - [x] Calendar view
 - [x] Statistics & consistency charts
+- [x] Onboarding, corner style toggle & progress overlay
 - [ ] Room-backed storage
 - [ ] Release v1.0
 

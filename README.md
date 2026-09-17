@@ -34,6 +34,16 @@ to‑do list: your habits live one swipe away.
 - 📴 **Offline-first** — your data stays on your device
 - 🆓 **Open source**
 
+## App flow
+
+<p align="center">
+  <img alt="Streak app flow diagram" src="docs/streak-flow.png" width="760">
+</p>
+
+<p align="center"><em>From launch to save — screens, gestures and the data layer.</em></p>
+
+Editable source: <a href="docs/streak-flow.excalidraw"><code>docs/streak-flow.excalidraw</code></a> — open it at <a href="https://excalidraw.com">excalidraw.com</a>.
+
 ## Roadmap
 
 - [x] Project setup (Kotlin · Compose · Material 3)

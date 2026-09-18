@@ -1,5 +1,6 @@
 package io.github.antitastico.streak
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -35,7 +36,10 @@ fun StreakApp() {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    StreakTheme(style = state.style) {
+    // Modo oscuro/claro: elección manual del usuario, o el del sistema si no hay.
+    val effectiveDark = state.darkMode ?: isSystemInDarkTheme()
+
+    StreakTheme(style = state.style, darkTheme = effectiveDark) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background

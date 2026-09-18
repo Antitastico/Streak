@@ -12,7 +12,9 @@ data class StoreData(
     val style: UiStyle,
     val userName: String,
     val onboarded: Boolean,
-    val defaultHabitId: Int?
+    val defaultHabitId: Int?,
+    /** null = seguir el tema del sistema; true/false = elección manual. */
+    val darkMode: Boolean?
 )
 
 /**
@@ -56,12 +58,15 @@ class HabitStore(context: Context) {
             }
             val defaultId = if (root.has("defaultHabitId") && !root.isNull("defaultHabitId"))
                 root.getInt("defaultHabitId") else null
+            val darkMode = if (root.has("darkMode") && !root.isNull("darkMode"))
+                root.getBoolean("darkMode") else null
             StoreData(
                 habits = habits,
                 style = style,
                 userName = root.optString("userName", ""),
                 onboarded = root.optBoolean("onboarded", habits.isNotEmpty()),
-                defaultHabitId = defaultId
+                defaultHabitId = defaultId,
+                darkMode = darkMode
             )
         } catch (e: Exception) {
             null
@@ -73,10 +78,11 @@ class HabitStore(context: Context) {
         style: UiStyle,
         userName: String,
         onboarded: Boolean,
-        defaultHabitId: Int?
+        defaultHabitId: Int?,
+        darkMode: Boolean?
     ) {
         val json = try {
-            buildJson(habits, style, userName, onboarded, defaultHabitId)
+            buildJson(habits, style, userName, onboarded, defaultHabitId, darkMode)
         } catch (e: Exception) {
             return
         }
@@ -106,7 +112,8 @@ class HabitStore(context: Context) {
         style: UiStyle,
         userName: String,
         onboarded: Boolean,
-        defaultHabitId: Int?
+        defaultHabitId: Int?,
+        darkMode: Boolean?
     ): String {
         val arr = JSONArray()
         habits.forEach { h ->
@@ -124,6 +131,7 @@ class HabitStore(context: Context) {
             put("userName", userName)
             put("onboarded", onboarded)
             if (defaultHabitId != null) put("defaultHabitId", defaultHabitId)
+            if (darkMode != null) put("darkMode", darkMode)
             put("habits", arr)
         }.toString()
     }
@@ -155,7 +163,7 @@ class HabitStore(context: Context) {
         habits[idx] = h.copy(
             completions = if (done) h.completions - today else h.completions + today
         )
-        save(habits, d.style, d.userName, d.onboarded, d.defaultHabitId)
+        save(habits, d.style, d.userName, d.onboarded, d.defaultHabitId, d.darkMode)
         return today in habits[idx].completions
     }
 
@@ -169,7 +177,7 @@ class HabitStore(context: Context) {
         val today = LocalDate.now()
         if (today in h.completions) return false
         habits[idx] = h.copy(completions = h.completions + today)
-        save(habits, d.style, d.userName, d.onboarded, d.defaultHabitId)
+        save(habits, d.style, d.userName, d.onboarded, d.defaultHabitId, d.darkMode)
         return true
     }
 }

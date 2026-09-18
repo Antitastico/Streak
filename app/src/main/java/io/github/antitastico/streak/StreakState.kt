@@ -30,6 +30,9 @@ class StreakState(private val store: HabitStore) {
     var defaultHabitId by mutableStateOf<Int?>(null)
         private set
 
+    var darkMode by mutableStateOf<Boolean?>(null)
+        private set
+
     init {
         val data = store.load()
         if (data != null) {
@@ -38,6 +41,7 @@ class StreakState(private val store: HabitStore) {
             userName = data.userName
             onboarded = data.onboarded
             defaultHabitId = data.defaultHabitId
+            darkMode = data.darkMode
             // Abrir en el hábito predeterminado (si existe).
             val idx = habits.indexOfFirst { it.id == data.defaultHabitId }
             selectedIndex = if (idx >= 0) idx else 0
@@ -57,6 +61,7 @@ class StreakState(private val store: HabitStore) {
         userName = d.userName
         onboarded = d.onboarded
         defaultHabitId = d.defaultHabitId
+        darkMode = d.darkMode
         if (selectedIndex !in habits.indices) {
             val idx = habits.indexOfFirst { it.id == d.defaultHabitId }
             selectedIndex = if (idx >= 0) idx else 0
@@ -64,7 +69,7 @@ class StreakState(private val store: HabitStore) {
     }
 
     private fun persist() =
-        store.save(habits.toList(), style, userName, onboarded, defaultHabitId)
+        store.save(habits.toList(), style, userName, onboarded, defaultHabitId, darkMode)
 
     fun select(index: Int) {
         if (index in habits.indices) selectedIndex = index
@@ -97,6 +102,12 @@ class StreakState(private val store: HabitStore) {
     /** Alterna entre Minimal y Moderno (para el símbolo de la esquina). */
     fun toggleStyle() {
         style = if (style == UiStyle.MINIMAL) UiStyle.MODERN else UiStyle.MINIMAL
+        persist()
+    }
+
+    /** Fija el modo claro/oscuro manual (para el botón de la esquina). */
+    fun setDarkMode(dark: Boolean) {
+        darkMode = dark
         persist()
     }
 

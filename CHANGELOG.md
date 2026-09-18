@@ -5,6 +5,19 @@ All notable changes to **Streak** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-09-18
+
+### Added
+- **Light/dark toggle** in the top-left corner (opposite the Minimal/Modern
+  toggle) — a manual choice that overrides the system theme and is remembered.
+
+### Changed
+- **Rounder, more centered app icon** — a shorter, less elongated flame.
+- **More zen Minimal style** — removed the chevron next to the habit name.
+- **Widgets now match the app**: they follow the chosen style (Minimal / Modern)
+  and light/dark, open the app when tapped, and the small widget marks/unmarks
+  today.
+
 ## [0.5.0] - 2026-09-18
 
 ### Added
@@ -65,6 +78,7 @@ First feature-complete preview.
 - **Local persistence**: habits, check-in dates and the chosen style are saved to
   a JSON file in the app's private storage and restored on launch.
 
+[0.5.1]: https://github.com/Antitastico/Streak/releases/tag/v0.5.1
 [0.5.0]: https://github.com/Antitastico/Streak/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Antitastico/Streak/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Antitastico/Streak/releases/tag/v0.3.0

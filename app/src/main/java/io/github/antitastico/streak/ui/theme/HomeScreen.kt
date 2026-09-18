@@ -1,6 +1,7 @@
 package io.github.antitastico.streak.ui.theme
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -58,6 +59,8 @@ fun HomeScreen(state: StreakState) {
         }
     }
 
+    val effectiveDark = state.darkMode ?: isSystemInDarkTheme()
+
     Box(modifier = Modifier.fillMaxSize()) {
         HomeContent(
             habit = state.current,
@@ -72,7 +75,24 @@ fun HomeScreen(state: StreakState) {
             onOpenDetail = { showDetail = true }
         )
 
-        // Símbolo minimalista de estilo, en la esquina superior derecha.
+        // Esquina superior izquierda: alterna claro / oscuro.
+        Text(
+            text = if (effectiveDark) "☀" else "☾",
+            fontSize = 20.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .statusBarsPadding()
+                .padding(8.dp)
+                .clip(CircleShape)
+                .clickable {
+                    state.setDarkMode(!effectiveDark)
+                    StreakWidget.updateAll(context)
+                }
+                .padding(10.dp)
+        )
+
+        // Esquina superior derecha: alterna Minimal / Moderno.
         Text(
             text = "◐",
             fontSize = 22.sp,
@@ -82,7 +102,10 @@ fun HomeScreen(state: StreakState) {
                 .statusBarsPadding()
                 .padding(8.dp)
                 .clip(CircleShape)
-                .clickable { state.toggleStyle() }
+                .clickable {
+                    state.toggleStyle()
+                    StreakWidget.updateAll(context)
+                }
                 .padding(10.dp)
         )
     }
@@ -148,8 +171,11 @@ private fun HomeContent(
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(habit.name, style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.width(6.dp))
-                Text("⌄", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // La flecha solo en Moderno; Minimal se mantiene zen, sin guías.
+                if (style == UiStyle.MODERN) {
+                    Spacer(Modifier.width(6.dp))
+                    Text("⌄", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
 

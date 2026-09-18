@@ -19,12 +19,6 @@ data class Habit(
 /** Estilo visual seleccionable. */
 enum class UiStyle { MODERN, MINIMAL }
 
-/** Inicial del hábito, para el estilo Minimal (en vez del emoji). */
-fun monogram(name: String): String {
-    val t = name.trim()
-    return if (t.isEmpty()) "?" else t.substring(0, 1).uppercase()
-}
-
 /** Catálogo de hábitos sugeridos para el onboarding (nombre a emoji). */
 val predefinedHabits: List<Pair<String, String>> = listOf(
     "Correr" to "🏃",

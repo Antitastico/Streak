@@ -25,12 +25,17 @@ to‑do list: your habits live one swipe away.
 
 - ✅ **Daily check-in** with an automatic streak counter
 - 🎯 **One focused habit** on the home screen — calm by design
+- 🧩 **Home-screen widget** in three sizes — mark today, a minimalist dot calendar,
+  or a mini interactive app
+- 🔔 **Nightly reminder (22:00)** with quick *"did you do it?"* actions
+- 🎉 **Streak messages** — congratulations on milestones, encouragement after a slip
+- 🔊 **Subtle sound** when you check in
 - 🚀 **First-run onboarding** — enter your name and pick or create habits
-- 🪟 **Progress overlay** — tap the streak number for a centered calendar + stats
-  window, without leaving home
+- 🪟 **Progress overlay** — tap the streak number for a centered calendar + stats window
 - ⭐ **Default habit** — choose which habit opens on launch
 - 🎨 **Two switchable styles** from a corner toggle — *Minimal* (default, black &
-  white, monograms) and *Modern* (Material 3, color, emoji)
+  white) and *Modern* (Material 3, color, emoji)
+- 💾 **Safe local storage** — automatic backup keeps your data across updates
 - 📴 **Offline-first** — your data stays on your device
 - 🆓 **Open source**
 
@@ -54,6 +59,7 @@ Editable source: <a href="docs/streak-flow.excalidraw"><code>docs/streak-flow.ex
 - [x] Calendar view
 - [x] Statistics & consistency charts
 - [x] Onboarding, corner style toggle & progress overlay
+- [x] Home-screen widget, nightly reminders & streak messages
 - [ ] Room-backed storage
 - [ ] Release v1.0
 
@@ -64,8 +70,10 @@ Editable source: <a href="docs/streak-flow.excalidraw"><code>docs/streak-flow.ex
 | Language | Kotlin |
 | UI | Jetpack Compose + Material 3 |
 | Architecture | MVVM (state holder → ViewModel) |
-| Persistence | Local JSON file *(Room planned)* |
+| Persistence | Local JSON file with auto-backup *(Room planned)* |
 | Dates & stats | `java.time` + pure Kotlin |
+| Widget | Jetpack Glance |
+| Reminders | WorkManager + notifications |
 | Min / Target SDK | 26 / 36 |
 
 ## Download
@@ -87,19 +95,30 @@ The APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
 ## Project structure
 
     app/src/main/java/io/github/antitastico/streak/
-    ├── MainActivity.kt      # Entry point
-    ├── StreakApp.kt         # Theme + bottom navigation
+    ├── MainActivity.kt      # Entry point, notification permission + reminder
+    ├── StreakApp.kt         # Theme + onboarding/home routing, reload on resume
     ├── StreakState.kt       # State holder: habits, selection, style
     ├── Habit.kt             # Habit model + UiStyle enum
     ├── HabitStats.kt        # Pure functions: streaks, consistency, charts
-    ├── HabitStore.kt        # Local JSON persistence
+    ├── HabitStore.kt        # Local JSON persistence with auto-backup
+    ├── audio/
+    │   └── SoundFx.kt        # Check-in sound (SoundPool)
+    ├── notify/              # Nightly reminder + streak messages
+    │   ├── Notifications.kt      # Channel + notification builders
+    │   ├── ReminderScheduler.kt  # Daily 22:00 schedule (WorkManager)
+    │   ├── ReminderWorker.kt     # Decides reminder / congrats / encouragement
+    │   └── HabitActionReceiver.kt# Notification action buttons
+    ├── widget/              # Home-screen widget (Jetpack Glance)
+    │   ├── StreakWidget.kt       # Small / medium / large layouts
+    │   └── StreakWidgetReceiver.kt
     └── ui/theme/
         ├── HomeScreen.kt     # Home + habit sheet + add dialog
+        ├── OnboardingScreen.kt # First-run onboarding
         ├── CalendarScreen.kt # Monthly calendar
         ├── StatsScreen.kt    # Stats, bar chart & heatmap
         ├── Theme.kt          # Modern / Minimal themes
         ├── Color.kt          # Color palette
-        └── Type.kt           # Typography
+        └── Type.kt           # Thin, delicate typography
 
 ## License
 

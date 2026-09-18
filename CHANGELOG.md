@@ -5,6 +5,28 @@ All notable changes to **Streak** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-09-18
+
+### Added
+- **Home-screen widget** (Jetpack Glance) in three sizes: small (mark today done),
+  medium (a minimalist dot calendar of completed days — filled = done), and large
+  (a mini interactive app with streak, calendar and check-in).
+- **Nightly reminder at 22:00** (urgent channel) with actions to mark whether you
+  did the habit: *"Sí, lo hice"* / *"Hoy no"* — straight from the notification.
+- **Congratulation messages** on streak milestones, and **encouraging messages**
+  after a streak is broken.
+- **Sound effect** when you check in.
+- **Automatic local backup**: atomic writes plus a backup copy and restore-on-
+  corruption, so your data survives updates.
+- **New minimalist app icon** (a white flame), including a themed-icon (monochrome)
+  variant for Android 13+.
+
+### Changed
+- **Lighter, more delicate typography** (thin/light weights, never italic).
+- **Removed the monogram initials** next to the habit name (hyper-minimalist).
+- The app reloads its data on resume, so a check-in from the widget or the
+  notification shows up immediately.
+
 ## [0.4.0] - 2026-09-04
 
 ### Added
@@ -43,5 +65,6 @@ First feature-complete preview.
 - **Local persistence**: habits, check-in dates and the chosen style are saved to
   a JSON file in the app's private storage and restored on launch.
 
+[0.5.0]: https://github.com/Antitastico/Streak/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Antitastico/Streak/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Antitastico/Streak/releases/tag/v0.3.0

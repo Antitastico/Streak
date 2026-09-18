@@ -18,15 +18,32 @@ data class StoreData(
 /**
  * Guarda y carga los datos en un archivo JSON DENTRO del teléfono (carpeta privada
  * de la app). Usa org.json, que Android ya incluye: sin librerías extra.
+ *
+ * Seguridad de datos:
+ *  - Escritura ATÓMICA: primero a un archivo temporal, luego se renombra.
+ *  - RESPALDO: antes de sobrescribir, el archivo bueno anterior se copia a
+ *    `streak_data.backup.json`.
+ *  - RESTAURACIÓN: si el archivo principal falta o está dañado, se lee el respaldo.
+ *
+ * Es la ÚNICA fuente de verdad: la app, las notificaciones y el widget leen/escriben aquí.
  */
 class HabitStore(context: Context) {
 
-    private val file = File(context.applicationContext.filesDir, "streak_data.json")
+    private val dir = context.applicationContext.filesDir
+    private val file = File(dir, "streak_data.json")
+    private val backup = File(dir, "streak_data.backup.json")
+    private val tmp = File(dir, "streak_data.tmp")
 
     fun load(): StoreData? {
-        if (!file.exists()) return null
+        parse(file)?.let { return it }
+        // El principal falta o está dañado: intenta restaurar desde el respaldo.
+        return parse(backup)
+    }
+
+    private fun parse(f: File): StoreData? {
+        if (!f.exists() || f.length() == 0L) return null
         return try {
-            val root = JSONObject(file.readText())
+            val root = JSONObject(f.readText())
             val style = if (root.optString("style") == "MINIMAL") UiStyle.MINIMAL else UiStyle.MODERN
             val arr = root.getJSONArray("habits")
             val habits = (0 until arr.length()).map { i ->
@@ -58,28 +75,101 @@ class HabitStore(context: Context) {
         onboarded: Boolean,
         defaultHabitId: Int?
     ) {
-        try {
-            val arr = JSONArray()
-            habits.forEach { h ->
-                val comps = JSONArray()
-                h.completions.forEach { comps.put(it.toString()) }
-                arr.put(JSONObject().apply {
-                    put("id", h.id)
-                    put("name", h.name)
-                    put("emoji", h.emoji)
-                    put("completions", comps)
-                })
-            }
-            val root = JSONObject().apply {
-                put("style", style.name)
-                put("userName", userName)
-                put("onboarded", onboarded)
-                if (defaultHabitId != null) put("defaultHabitId", defaultHabitId)
-                put("habits", arr)
-            }
-            file.writeText(root.toString())
+        val json = try {
+            buildJson(habits, style, userName, onboarded, defaultHabitId)
         } catch (e: Exception) {
-            // No rompemos la app si falla el guardado.
+            return
         }
+        try {
+            // 1) Respalda el archivo bueno anterior antes de tocarlo.
+            if (file.exists() && file.length() > 0) {
+                file.copyTo(backup, overwrite = true)
+            }
+            // 2) Escribe a un temporal y renómbralo (atómico en el mismo disco).
+            tmp.writeText(json)
+            file.delete()
+            if (!tmp.renameTo(file)) {
+                file.writeText(json)
+                tmp.delete()
+            }
+        } catch (e: Exception) {
+            // Último recurso: escribir directo, sin romper la app.
+            try {
+                file.writeText(json)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun buildJson(
+        habits: List<Habit>,
+        style: UiStyle,
+        userName: String,
+        onboarded: Boolean,
+        defaultHabitId: Int?
+    ): String {
+        val arr = JSONArray()
+        habits.forEach { h ->
+            val comps = JSONArray()
+            h.completions.forEach { comps.put(it.toString()) }
+            arr.put(JSONObject().apply {
+                put("id", h.id)
+                put("name", h.name)
+                put("emoji", h.emoji)
+                put("completions", comps)
+            })
+        }
+        return JSONObject().apply {
+            put("style", style.name)
+            put("userName", userName)
+            put("onboarded", onboarded)
+            if (defaultHabitId != null) put("defaultHabitId", defaultHabitId)
+            put("habits", arr)
+        }.toString()
+    }
+
+    // ---- Operaciones de alto nivel sobre el hábito predeterminado ----
+    // (las usan la notificación de las 10pm y el widget de la pantalla de inicio)
+
+    private fun defaultIndex(habits: List<Habit>, defaultId: Int?): Int {
+        val i = habits.indexOfFirst { it.id == defaultId }
+        return if (i >= 0) i else if (habits.isNotEmpty()) 0 else -1
+    }
+
+    /** El hábito que se abre al iniciar (o el primero). */
+    fun defaultHabit(): Habit? {
+        val d = load() ?: return null
+        val i = defaultIndex(d.habits, d.defaultHabitId)
+        return if (i >= 0) d.habits[i] else null
+    }
+
+    /** Marca/desmarca HOY en el hábito predeterminado. Devuelve el nuevo estado. */
+    fun toggleDefaultToday(): Boolean {
+        val d = load() ?: return false
+        val habits = d.habits.toMutableList()
+        val idx = defaultIndex(habits, d.defaultHabitId)
+        if (idx < 0) return false
+        val h = habits[idx]
+        val today = LocalDate.now()
+        val done = today in h.completions
+        habits[idx] = h.copy(
+            completions = if (done) h.completions - today else h.completions + today
+        )
+        save(habits, d.style, d.userName, d.onboarded, d.defaultHabitId)
+        return today in habits[idx].completions
+    }
+
+    /** Asegura que HOY quede marcado (idempotente). Devuelve true si hubo cambio. */
+    fun markDefaultDoneToday(): Boolean {
+        val d = load() ?: return false
+        val habits = d.habits.toMutableList()
+        val idx = defaultIndex(habits, d.defaultHabitId)
+        if (idx < 0) return false
+        val h = habits[idx]
+        val today = LocalDate.now()
+        if (today in h.completions) return false
+        habits[idx] = h.copy(completions = h.completions + today)
+        save(habits, d.style, d.userName, d.onboarded, d.defaultHabitId)
+        return true
     }
 }

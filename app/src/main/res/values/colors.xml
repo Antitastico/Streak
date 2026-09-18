@@ -7,4 +7,9 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Colores del widget (variante -night en values-night) -->
+    <color name="widget_bg">#FFFFFFFF</color>
+    <color name="widget_fg">#FF0A0A0A</color>
+    <color name="widget_muted">#FFE3E3E3</color>
 </resources>

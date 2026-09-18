@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Streak</string>
+    <string name="widget_description">Marca tu hábito y mira tu racha desde la pantalla de inicio.</string>
 </resources>

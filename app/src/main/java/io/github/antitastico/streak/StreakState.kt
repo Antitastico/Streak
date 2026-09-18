@@ -48,6 +48,21 @@ class StreakState(private val store: HabitStore) {
     val current: Habit
         get() = habits[selectedIndex]
 
+    /** Recarga desde el almacenamiento (p. ej. tras marcar desde el widget o la notificación). */
+    fun reload() {
+        val d = store.load() ?: return
+        habits.clear()
+        habits.addAll(d.habits)
+        style = d.style
+        userName = d.userName
+        onboarded = d.onboarded
+        defaultHabitId = d.defaultHabitId
+        if (selectedIndex !in habits.indices) {
+            val idx = habits.indexOfFirst { it.id == d.defaultHabitId }
+            selectedIndex = if (idx >= 0) idx else 0
+        }
+    }
+
     private fun persist() =
         store.save(habits.toList(), style, userName, onboarded, defaultHabitId)
 

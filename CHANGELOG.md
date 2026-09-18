@@ -5,6 +5,19 @@ All notable changes to **Streak** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-09-18
+
+### Changed
+- **Light/dark toggle** now uses a hand-drawn minimalist sun/moon (monochrome, no
+  emoji), matching the app's B/W identity.
+- **Habit sheet is fully monochrome**: the default habit is marked with a dot
+  (filled = chosen) instead of a star, and the greeting drops the emoji.
+
+### Fixed
+- **Widgets**: switched to responsive sizing so the medium and large layouts
+  render (previously only the small one showed), and added a real preview image so
+  the widget picker no longer stays on a loading spinner.
+
 ## [0.5.1] - 2026-09-18
 
 ### Added
@@ -78,6 +91,7 @@ First feature-complete preview.
 - **Local persistence**: habits, check-in dates and the chosen style are saved to
   a JSON file in the app's private storage and restored on launch.
 
+[0.5.2]: https://github.com/Antitastico/Streak/releases/tag/v0.5.2
 [0.5.1]: https://github.com/Antitastico/Streak/releases/tag/v0.5.1
 [0.5.0]: https://github.com/Antitastico/Streak/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Antitastico/Streak/releases/tag/v0.4.0

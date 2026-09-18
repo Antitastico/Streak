@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -75,7 +76,13 @@ private fun systemDark(context: Context): Boolean =
 /** Widget de pantalla de inicio en 3 tamaños (Jetpack Glance). */
 class StreakWidget : GlanceAppWidget() {
 
-    override val sizeMode = SizeMode.Exact
+    override val sizeMode = SizeMode.Responsive(
+        setOf(
+            DpSize(120.dp, 120.dp),  // pequeño
+            DpSize(250.dp, 120.dp),  // mediano (ancho, bajo)
+            DpSize(250.dp, 250.dp)   // grande
+        )
+    )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val data = withContext(Dispatchers.IO) { HabitStore(context).load() }

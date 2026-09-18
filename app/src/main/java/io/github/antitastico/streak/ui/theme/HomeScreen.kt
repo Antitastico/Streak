@@ -10,7 +10,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
@@ -37,6 +39,43 @@ fun HabitIcon(
 ) {
     if (style == UiStyle.MODERN) {
         Text(habit.emoji, fontSize = emojiSize)
+    }
+}
+
+/** Icono minimalista, monocromo, dibujado a mano: sol (rayos) o luna (creciente). */
+@Composable
+private fun ThemeToggleIcon(dark: Boolean, tint: Color, background: Color) {
+    Canvas(modifier = Modifier.size(20.dp)) {
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val m = size.minDimension
+        if (dark) {
+            val r = m * 0.20f
+            drawCircle(color = tint, radius = r, center = Offset(cx, cy))
+            val inR = r * 1.7f
+            val outR = r * 2.5f
+            val stroke = m * 0.055f
+            for (i in 0 until 8) {
+                val a = (Math.PI / 4.0 * i).toFloat()
+                val dx = kotlin.math.cos(a)
+                val dy = kotlin.math.sin(a)
+                drawLine(
+                    color = tint,
+                    start = Offset(cx + inR * dx, cy + inR * dy),
+                    end = Offset(cx + outR * dx, cy + outR * dy),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round
+                )
+            }
+        } else {
+            val r = m * 0.34f
+            drawCircle(color = tint, radius = r, center = Offset(cx, cy))
+            drawCircle(
+                color = background,
+                radius = r * 0.92f,
+                center = Offset(cx + r * 0.55f, cy - r * 0.28f)
+            )
+        }
     }
 }
 
@@ -75,11 +114,8 @@ fun HomeScreen(state: StreakState) {
             onOpenDetail = { showDetail = true }
         )
 
-        // Esquina superior izquierda: alterna claro / oscuro.
-        Text(
-            text = if (effectiveDark) "☀" else "☾",
-            fontSize = 20.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        // Esquina superior izquierda: alterna claro / oscuro (icono minimalista).
+        Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .statusBarsPadding()
@@ -90,7 +126,13 @@ fun HomeScreen(state: StreakState) {
                     StreakWidget.updateAll(context)
                 }
                 .padding(10.dp)
-        )
+        ) {
+            ThemeToggleIcon(
+                dark = effectiveDark,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                background = MaterialTheme.colorScheme.background
+            )
+        }
 
         // Esquina superior derecha: alterna Minimal / Moderno.
         Text(
@@ -235,10 +277,10 @@ private fun HabitSheetContent(
             .padding(horizontal = 16.dp)
             .padding(bottom = 24.dp)
     ) {
-        val title = if (state.userName.isBlank()) "Mis hábitos" else "Hola, ${state.userName} 👋"
+        val title = if (state.userName.isBlank()) "Mis hábitos" else "Hola, ${state.userName}"
         Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = 8.dp))
         Text(
-            "La ⭐ marca cuál se abre al iniciar.",
+            "Toca el punto para elegir cuál se abre al iniciar.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp)
@@ -275,15 +317,20 @@ private fun HabitSheetContent(
                     fontWeight = FontWeight.Normal
                 )
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    text = if (isDefault) "⭐" else "☆",
-                    fontSize = 20.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // Punto de "predeterminado": relleno = elegido, aro = no elegido.
+                Box(
                     modifier = Modifier
                         .clip(CircleShape)
                         .clickable { state.setDefault(habit.id) }
-                        .padding(6.dp)
-                )
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isDefault) {
+                        Box(Modifier.size(12.dp).background(MaterialTheme.colorScheme.onSurface, CircleShape))
+                    } else {
+                        Box(Modifier.size(12.dp).border(1.5.dp, MaterialTheme.colorScheme.outline, CircleShape))
+                    }
+                }
             }
         }
 

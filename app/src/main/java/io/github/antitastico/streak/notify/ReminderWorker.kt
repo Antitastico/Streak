@@ -23,22 +23,24 @@ class ReminderWorker(context: Context, params: WorkerParameters) :
 
         val habit = HabitStore(ctx).defaultHabit() ?: return Result.success()
         val today = LocalDate.now()
-        val done = today in habit.completions
-        val streak = HabitStats.currentStreak(habit.completions, today)
+        val covered = habit.covered
+        val coveredToday = today in covered
+        val streak = HabitStats.currentStreak(covered, today)
         val prefs = ctx.getSharedPreferences("streak_notif", Context.MODE_PRIVATE)
 
-        if (done) {
-            if (isMilestone(streak) && prefs.getInt("congrats", -1) != streak) {
+        if (coveredToday) {
+            // Solo felicitamos por hitos de días CUMPLIDOS (no descansos).
+            if (today in habit.completions && isMilestone(streak) && prefs.getInt("congrats", -1) != streak) {
                 Notify.showMessage(ctx, "¡$streak días seguidos! 🔥", congrats(streak))
                 prefs.edit().putInt("congrats", streak).apply()
             }
             return Result.success()
         }
 
-        // No hecho hoy. ¿Se acaba de romper una racha (ayer tampoco)?
-        val last = habit.completions.maxOrNull()
-        val yesterdayMissed = today.minusDays(1) !in habit.completions
-        val brokenStreak = if (last != null) HabitStats.currentStreak(habit.completions, last) else 0
+        // Hoy sin cubrir. ¿Se acaba de romper una racha (ayer tampoco)?
+        val last = covered.maxOrNull()
+        val yesterdayMissed = today.minusDays(1) !in covered
+        val brokenStreak = if (last != null) HabitStats.currentStreak(covered, last) else 0
         val breakKey = last?.toString() ?: ""
 
         if (last != null && yesterdayMissed && brokenStreak >= 3 &&
@@ -47,7 +49,11 @@ class ReminderWorker(context: Context, params: WorkerParameters) :
             Notify.showReminder(ctx, "No pasa nada 🌙", encouragement(brokenStreak))
             prefs.edit().putString("encouraged", breakKey).apply()
         } else {
-            Notify.showReminder(ctx, "¿Entrenaste hoy?", "Marca tu ${habit.name} antes de dormir.")
+            val body = if (streak > 0)
+                "Llevas $streak días. Marca tu ${habit.name} para no romper la racha."
+            else
+                "Hoy es un buen día para empezar con ${habit.name}."
+            Notify.showReminder(ctx, "¿Cumpliste hoy?", body)
         }
         return Result.success()
     }

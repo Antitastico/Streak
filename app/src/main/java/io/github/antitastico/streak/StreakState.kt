@@ -33,6 +33,13 @@ class StreakState(private val store: HabitStore) {
     var darkMode by mutableStateOf<Boolean?>(null)
         private set
 
+    var reminderEnabled by mutableStateOf(true)
+        private set
+    var reminderHour by mutableStateOf(22)
+        private set
+    var reminderMinute by mutableStateOf(0)
+        private set
+
     init {
         val data = store.load()
         if (data != null) {
@@ -42,6 +49,9 @@ class StreakState(private val store: HabitStore) {
             onboarded = data.onboarded
             defaultHabitId = data.defaultHabitId
             darkMode = data.darkMode
+            reminderEnabled = data.reminderEnabled
+            reminderHour = data.reminderHour
+            reminderMinute = data.reminderMinute
             // Abrir en el hábito predeterminado (si existe).
             val idx = habits.indexOfFirst { it.id == data.defaultHabitId }
             selectedIndex = if (idx >= 0) idx else 0
@@ -62,6 +72,9 @@ class StreakState(private val store: HabitStore) {
         onboarded = d.onboarded
         defaultHabitId = d.defaultHabitId
         darkMode = d.darkMode
+        reminderEnabled = d.reminderEnabled
+        reminderHour = d.reminderHour
+        reminderMinute = d.reminderMinute
         if (selectedIndex !in habits.indices) {
             val idx = habits.indexOfFirst { it.id == d.defaultHabitId }
             selectedIndex = if (idx >= 0) idx else 0
@@ -69,7 +82,10 @@ class StreakState(private val store: HabitStore) {
     }
 
     private fun persist() =
-        store.save(habits.toList(), style, userName, onboarded, defaultHabitId, darkMode)
+        store.save(
+            habits.toList(), style, userName, onboarded, defaultHabitId, darkMode,
+            reminderEnabled, reminderHour, reminderMinute
+        )
 
     fun select(index: Int) {
         if (index in habits.indices) selectedIndex = index
@@ -78,10 +94,24 @@ class StreakState(private val store: HabitStore) {
     fun toggleToday() {
         val h = habits[selectedIndex]
         val today = LocalDate.now()
-        val newCompletions =
-            if (today in h.completions) h.completions - today
-            else h.completions + today
-        habits[selectedIndex] = h.copy(completions = newCompletions)
+        val done = today in h.completions
+        habits[selectedIndex] = h.copy(
+            completions = if (done) h.completions - today else h.completions + today,
+            restDays = if (done) h.restDays else h.restDays - today
+        )
+        persist()
+    }
+
+    /** Marca/quita el descanso de hoy (si hay descansos disponibles). */
+    fun toggleRest() {
+        val h = habits[selectedIndex]
+        val today = LocalDate.now()
+        habits[selectedIndex] = when {
+            today in h.restDays -> h.copy(restDays = h.restDays - today)
+            today in h.completions -> h            // ya cumplido: no aplica
+            h.availableRests(today) <= 0 -> h      // sin descansos disponibles
+            else -> h.copy(restDays = h.restDays + today)
+        }
         persist()
     }
 
@@ -108,6 +138,14 @@ class StreakState(private val store: HabitStore) {
     /** Fija el modo claro/oscuro manual (para el botón de la esquina). */
     fun setDarkMode(dark: Boolean) {
         darkMode = dark
+        persist()
+    }
+
+    /** Configura el recordatorio diario (activado + hora). */
+    fun setReminder(enabled: Boolean, hour: Int, minute: Int) {
+        reminderEnabled = enabled
+        reminderHour = hour
+        reminderMinute = minute
         persist()
     }
 

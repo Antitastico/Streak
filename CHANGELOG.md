@@ -5,6 +5,24 @@ All notable changes to **Streak** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-09-30
+
+### Added
+- **Configurable daily reminder**: a switch and a time picker in the habit sheet;
+  the notification is rescheduled to the chosen time (or turned off), and its text
+  mentions your current streak.
+- **Rest days**: long-press the check-in button to take a rest that keeps your
+  streak alive. You earn one rest for every 3 consecutive days.
+
+### Changed
+- **Calendar redesign** (dot review): a large day number, month navigation and a
+  grid of big, high-contrast dots — filled = done, ring = pending, thick ring =
+  rest, and today in an orange accent.
+- **Stats redesign**: a large consistency percentage with a 30-day dot row,
+  thin-outlined stat cards and a minimalist weekly bar chart (current week filled).
+- **Home**: a 7-day dot strip under the streak number.
+- **Diagonal-stripe shader** used as a subtle texture in the calendar.
+
 ## [0.5.2] - 2026-09-18
 
 ### Changed
@@ -91,6 +109,7 @@ First feature-complete preview.
 - **Local persistence**: habits, check-in dates and the chosen style are saved to
   a JSON file in the app's private storage and restored on launch.
 
+[0.6.0]: https://github.com/Antitastico/Streak/releases/tag/v0.6.0
 [0.5.2]: https://github.com/Antitastico/Streak/releases/tag/v0.5.2
 [0.5.1]: https://github.com/Antitastico/Streak/releases/tag/v0.5.1
 [0.5.0]: https://github.com/Antitastico/Streak/releases/tag/v0.5.0

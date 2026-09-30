@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         Notify.ensureChannel(this)
-        ReminderScheduler.scheduleDaily(this)
+        ReminderScheduler.apply(this)
         maybeRequestNotifications()
 
         setContent {

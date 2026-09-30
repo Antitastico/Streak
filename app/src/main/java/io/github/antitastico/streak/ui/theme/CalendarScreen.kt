@@ -17,51 +17,84 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.antitastico.streak.StreakState
-import io.github.antitastico.streak.UiStyle
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
 
-/** Calendario mensual del hábito en foco: días marcados resaltados. */
+private val Accent = Color(0xFFE8631A)
+
+/** Calendario "review": número grande de hoy y una grilla de puntos grandes. */
 @Composable
 fun CalendarScreen(state: StreakState) {
     val habit = state.current
     var month by remember { mutableStateOf(YearMonth.now()) }
     val today = LocalDate.now()
+    val es = Locale("es")
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Encabezado con el hábito
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            HabitIcon(habit, state.style, emojiSize = 20.sp, circleSize = 28.dp, monoSize = 13.sp)
-            Spacer(Modifier.width(8.dp))
-            Text(habit.name, style = MaterialTheme.typography.titleLarge)
-        }
-        Spacer(Modifier.height(20.dp))
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Shader de rayas diagonales, solo en el calendario.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .diagonalStripes(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 18.dp)
+        ) {
+        Text(
+            habit.name.uppercase(es),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(4.dp))
 
-        // Selector de mes
+        // Número grande de hoy (estilo referencia)
+        Text(
+            "${today.dayOfMonth}",
+            fontSize = 64.sp,
+            fontWeight = FontWeight.Thin,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        // Mes/año (mes visible) + día de la semana de hoy
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = { month = month.minusMonths(1) }) { Text("‹", fontSize = 22.sp) }
-            val label = month.month.getDisplayName(TextStyle.FULL, Locale("es"))
-                .replaceFirstChar { it.uppercase() } + " " + month.year
+            Column(Modifier.weight(1f)) {
+                Text(
+                    month.month.getDisplayName(TextStyle.FULL, es).uppercase(es),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    "${month.year}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Text(
-                label,
+                today.dayOfWeek.getDisplayName(TextStyle.SHORT, es)
+                    .replaceFirstChar { it.uppercase() }.trimEnd('.'),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center
+                color = MaterialTheme.colorScheme.onSurface
             )
-            TextButton(onClick = { month = month.plusMonths(1) }) { Text("›", fontSize = 22.sp) }
         }
-        Spacer(Modifier.height(8.dp))
 
-        // Cabecera de días (lunes primero)
-        val week = listOf("Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do")
+        Spacer(Modifier.height(14.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = { month = month.minusMonths(1) }, contentPadding = PaddingValues(horizontal = 12.dp)) {
+                Text("‹", fontSize = 22.sp)
+            }
+            TextButton(onClick = { month = month.plusMonths(1) }, contentPadding = PaddingValues(horizontal = 12.dp)) {
+                Text("›", fontSize = 22.sp)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+
+        // Letras de día (lunes primero)
+        val week = listOf("L", "M", "X", "J", "V", "S", "D")
         Row(Modifier.fillMaxWidth()) {
             week.forEach {
                 Text(
@@ -73,14 +106,13 @@ fun CalendarScreen(state: StreakState) {
                 )
             }
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(8.dp))
 
-        // Grilla de días
+        // Grilla de puntos grandes (sin números)
         val firstOfMonth = month.atDay(1)
-        val offset = (firstOfMonth.dayOfWeek.value + 6) % 7 // lunes = 0
+        val offset = (firstOfMonth.dayOfWeek.value + 6) % 7
         val daysInMonth = month.lengthOfMonth()
-        val totalCells = offset + daysInMonth
-        val rows = (totalCells + 6) / 7
+        val rows = (offset + daysInMonth + 6) / 7
 
         for (r in 0 until rows) {
             Row(Modifier.fillMaxWidth()) {
@@ -89,54 +121,47 @@ fun CalendarScreen(state: StreakState) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .padding(3.dp),
+                            .aspectRatio(1f)
+                            .padding(5.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         if (dayNum in 1..daysInMonth) {
-                            val date = month.atDay(dayNum)
-                            DayCell(
-                                day = dayNum,
-                                done = date in habit.completions,
-                                isToday = date == today
-                            )
+                            DayDot(month.atDay(dayNum), habit.completions, habit.restDays, today)
                         }
                     }
                 }
             }
         }
 
-        Spacer(Modifier.height(24.dp))
-        val flame = if (state.style == UiStyle.MODERN) "🔥 " else ""
+        Spacer(Modifier.height(22.dp))
         Text(
-            text = "$flame${habit.streak} de racha · ${habit.completions.size} check-ins en total",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+            "${habit.streak} de racha · ${habit.completions.size} cumplidos · ${habit.restDays.size} descansos",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        }
     }
 }
 
 @Composable
-private fun DayCell(day: Int, done: Boolean, isToday: Boolean) {
-    val bg = if (done) MaterialTheme.colorScheme.primary else Color.Transparent
-    val fg = if (done) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-    Box(
-        modifier = Modifier
-            .size(38.dp)
-            .clip(CircleShape)
-            .background(bg)
-            .then(
-                if (isToday && !done)
-                    Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                else Modifier
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            "$day",
-            color = fg,
-            fontSize = 14.sp,
-            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
-        )
+private fun DayDot(
+    date: LocalDate,
+    completions: Set<LocalDate>,
+    rests: Set<LocalDate>,
+    today: LocalDate
+) {
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val ring = MaterialTheme.colorScheme.onSurfaceVariant
+    val done = date in completions
+    val rest = date in rests
+    val isToday = date == today
+
+    val cell = when {
+        isToday && done -> Modifier.background(Accent)
+        isToday -> Modifier.border(2.5.dp, Accent, CircleShape)
+        done -> Modifier.background(onSurface)
+        rest -> Modifier.border(2.5.dp, onSurface, CircleShape)
+        else -> Modifier.border(1.5.dp, ring, CircleShape)
     }
+    Box(modifier = Modifier.fillMaxSize().clip(CircleShape).then(cell))
 }

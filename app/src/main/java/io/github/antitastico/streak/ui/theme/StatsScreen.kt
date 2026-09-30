@@ -1,8 +1,10 @@
 package io.github.antitastico.streak.ui.theme
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -13,22 +15,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.antitastico.streak.Habit
 import io.github.antitastico.streak.HabitStats
 import io.github.antitastico.streak.StreakState
-import io.github.antitastico.streak.UiStyle
 import java.time.LocalDate
 
-/** Estadísticas de constancia del hábito en foco. */
+/** Estadísticas de constancia del hábito en foco (monocromo, tarjetas de borde fino). */
 @Composable
 fun StatsScreen(state: StreakState) {
     val habit = state.current
     val today = LocalDate.now()
-    val completions = habit.completions
 
-    val current = HabitStats.currentStreak(completions, today)
-    val longest = HabitStats.longestStreak(completions)
-    val consistency = HabitStats.consistency(completions, today, 30)
-    val total = HabitStats.total(completions)
+    val current = HabitStats.currentStreak(habit.covered, today)
+    val longest = HabitStats.longestStreak(habit.covered)
+    val consistency = HabitStats.consistency(habit.completions, today, 30)
+    val total = HabitStats.total(habit.completions)
 
     Column(
         modifier = Modifier
@@ -36,56 +37,95 @@ fun StatsScreen(state: StreakState) {
             .verticalScroll(rememberScrollState())
             .padding(20.dp)
     ) {
-        // Encabezado
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            HabitIcon(habit, state.style, emojiSize = 20.sp, circleSize = 28.dp, monoSize = 13.sp)
-            Spacer(Modifier.width(8.dp))
-            Text(habit.name, style = MaterialTheme.typography.titleLarge)
-        }
+        Text(habit.name, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(20.dp))
 
-        // Tarjetas 2x2
+        // Constancia (número grande + puntos de los últimos 30 días)
+        Text(
+            "$consistency%",
+            fontSize = 56.sp,
+            fontWeight = FontWeight.Thin,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            "constancia · últimos 30 días",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(14.dp))
+        ConsistencyDots(habit, today)
+
+        Spacer(Modifier.height(24.dp))
+
+        // Tarjetas de borde fino 2x2
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatCard("Racha actual", current.toString(), Modifier.weight(1f))
             StatCard("Racha más larga", longest.toString(), Modifier.weight(1f))
         }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatCard("Constancia 30d", "$consistency%", Modifier.weight(1f))
-            StatCard("Check-ins", total.toString(), Modifier.weight(1f))
+            StatCard("Cumplidos", total.toString(), Modifier.weight(1f))
+            StatCard("Descansos", habit.restDays.size.toString(), Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(28.dp))
         Text("Últimas 8 semanas", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(12.dp))
-        WeeklyBars(HabitStats.weeklyCounts(completions, today, 8))
-
-        Spacer(Modifier.height(28.dp))
-        Text("Últimos 35 días", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(12.dp))
-        Heatmap(HabitStats.lastDays(completions, today, 35))
+        Spacer(Modifier.height(14.dp))
+        WeeklyBars(HabitStats.weeklyCounts(habit.completions, today, 8))
         Spacer(Modifier.height(12.dp))
     }
 }
 
 @Composable
+private fun ConsistencyDots(habit: Habit, today: LocalDate) {
+    val days = (29 downTo 0).map { today.minusDays(it.toLong()) }
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val ringDim = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        for (r in 0 until 2) {
+            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                for (c in 0 until 15) {
+                    val d = days[r * 15 + c]
+                    val done = d in habit.completions
+                    val rest = d in habit.restDays
+                    Box(
+                        modifier = Modifier
+                            .size(15.dp)
+                            .clip(CircleShape)
+                            .then(
+                                when {
+                                    done -> Modifier.background(onSurface)
+                                    rest -> Modifier.border(2.dp, onSurface, CircleShape)
+                                    else -> Modifier.border(1.5.dp, ringDim, CircleShape)
+                                }
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+            .padding(16.dp)
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Column {
             Text(
                 value,
                 fontSize = 34.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                fontWeight = FontWeight.Light,
+                color = MaterialTheme.colorScheme.onSurface
             )
+            Spacer(Modifier.height(2.dp))
             Text(
                 label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -94,53 +134,40 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
 @Composable
 private fun WeeklyBars(counts: List<Int>) {
     val maxPerWeek = 7
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val lastIndex = counts.lastIndex
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(110.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.Bottom
     ) {
-        counts.forEach { c ->
+        counts.forEachIndexed { i, c ->
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Bottom
             ) {
-                Text("$c", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    "$c",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Spacer(Modifier.height(4.dp))
-                val barHeight = (90f * c / maxPerWeek).coerceAtLeast(3f).dp
+                val barHeight = (86f * c / maxPerWeek).coerceAtLeast(6f).dp
+                val shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+                val current = i == lastIndex
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(barHeight)
-                        .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp))
-                        .background(MaterialTheme.colorScheme.primary)
+                        .clip(shape)
+                        .then(
+                            if (current) Modifier.background(onSurface)
+                            else Modifier.border(1.5.dp, onSurface, shape)
+                        )
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun Heatmap(days: List<Pair<LocalDate, Boolean>>) {
-    // 35 días = 5 filas x 7 columnas
-    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        for (r in 0 until 5) {
-            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                for (c in 0 until 7) {
-                    val idx = r * 7 + c
-                    val done = idx < days.size && days[idx].second
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(
-                                if (done) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.outlineVariant
-                            )
-                    )
-                }
             }
         }
     }

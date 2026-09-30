@@ -22,6 +22,33 @@ object HabitStats {
         return count
     }
 
+    /** La racha actual como (fecha de inicio, longitud), o null si no hay. */
+    fun currentRun(days: Set<LocalDate>, today: LocalDate): Pair<LocalDate, Int>? {
+        if (days.isEmpty()) return null
+        val anchor = if (today in days) today else today.minusDays(1)
+        if (anchor !in days) return null
+        var start = anchor
+        while (start.minusDays(1) in days) start = start.minusDays(1)
+        val length = ChronoUnit.DAYS.between(start, anchor).toInt() + 1
+        return start to length
+    }
+
+    /** Días seguidos necesarios para ganar un descanso. */
+    const val REST_EVERY = 3
+
+    /**
+     * Descansos disponibles: se gana 1 por cada [REST_EVERY] días seguidos de la
+     * racha actual, menos los descansos ya usados dentro de esa misma racha.
+     */
+    fun availableRests(covered: Set<LocalDate>, restDays: Set<LocalDate>, today: LocalDate): Int {
+        val run = currentRun(covered, today) ?: return 0
+        val (start, length) = run
+        val anchor = start.plusDays((length - 1).toLong())
+        val earned = length / REST_EVERY
+        val used = restDays.count { !it.isBefore(start) && !it.isAfter(anchor) }
+        return (earned - used).coerceAtLeast(0)
+    }
+
     /** Racha más larga jamás lograda. */
     fun longestStreak(completions: Set<LocalDate>): Int {
         if (completions.isEmpty()) return 0

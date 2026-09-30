@@ -27,7 +27,8 @@ to‑do list: your habits live one swipe away.
 - 🎯 **One focused habit** on the home screen — calm by design
 - 🧩 **Home-screen widget** in three sizes — mark today, a minimalist dot calendar,
   or a mini interactive app
-- 🔔 **Nightly reminder (22:00)** with quick *"did you do it?"* actions
+- 🔔 **Configurable daily reminder** with quick *"did you do it?"* actions
+- 😌 **Rest days** — long-press to rest without breaking your streak (earn one every 3 days)
 - 🎉 **Streak messages** — congratulations on milestones, encouragement after a slip
 - 🔊 **Subtle sound** when you check in
 - 🚀 **First-run onboarding** — enter your name and pick or create habits

@@ -22,8 +22,10 @@ import io.github.antitastico.streak.Habit
 import io.github.antitastico.streak.StreakState
 import io.github.antitastico.streak.UiStyle
 import io.github.antitastico.streak.audio.SoundFx
+import io.github.antitastico.streak.notify.ReminderScheduler
 import io.github.antitastico.streak.widget.StreakWidget
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /**
  * Icono del hábito. En MODERN muestra el emoji; en MINIMAL no muestra nada
@@ -110,6 +112,10 @@ fun HomeScreen(state: StreakState) {
                 if (!wasDone) sound.play()
                 StreakWidget.updateAll(context)
             },
+            onRest = {
+                state.toggleRest()
+                StreakWidget.updateAll(context)
+            },
             onOpenHabits = { showSheet = true },
             onOpenDetail = { showDetail = true }
         )
@@ -183,6 +189,7 @@ private fun HomeContent(
     habit: Habit,
     style: UiStyle,
     onCheckIn: () -> Unit,
+    onRest: () -> Unit,
     onOpenHabits: () -> Unit,
     onOpenDetail: () -> Unit
 ) {
@@ -242,7 +249,9 @@ private fun HomeContent(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(16.dp))
+            WeekDots(habit)
+            Spacer(Modifier.height(10.dp))
             Text(
                 "toca para ver tu progreso",
                 style = MaterialTheme.typography.labelSmall,
@@ -250,16 +259,82 @@ private fun HomeContent(
             )
         }
 
-        // Botón de check-in
-        when {
-            style == UiStyle.MINIMAL && habit.doneToday ->
-                Button(onClick = onCheckIn) { Text("✓ Hecho hoy") }
-            style == UiStyle.MINIMAL ->
-                OutlinedButton(onClick = onCheckIn) { Text("Hecho hoy") }
-            habit.doneToday ->
-                FilledTonalButton(onClick = onCheckIn) { Text("✓ Hecho hoy") }
-            else ->
-                Button(onClick = onCheckIn) { Text("Hecho hoy") }
+        // Botón de check-in (mantén pulsado para "descanso")
+        CheckInControl(habit = habit, style = style, onCheckIn = onCheckIn, onRest = onRest)
+    }
+}
+
+/** Tira de los últimos 7 días: relleno = cumplido, aro grueso = descanso, aro fino = pendiente. */
+@Composable
+private fun WeekDots(habit: Habit) {
+    val today = LocalDate.now()
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (i in 6 downTo 0) {
+            val d = today.minusDays(i.toLong())
+            val done = d in habit.completions
+            val rest = d in habit.restDays
+            Box(
+                modifier = Modifier
+                    .size(11.dp)
+                    .clip(CircleShape)
+                    .then(
+                        when {
+                            done -> Modifier.background(MaterialTheme.colorScheme.onSurface)
+                            rest -> Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                            else -> Modifier.border(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant, CircleShape)
+                        }
+                    )
+            )
+        }
+    }
+}
+
+/** Botón "Hecho hoy": tap = cumplir; mantener pulsado = tomar/quitar descanso. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun CheckInControl(habit: Habit, style: UiStyle, onCheckIn: () -> Unit, onRest: () -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    val avail = habit.availableRests()
+
+    val label = when {
+        habit.doneToday -> "✓ Hecho hoy"
+        habit.restToday -> "Descanso de hoy"
+        else -> "Hecho hoy"
+    }
+    val filled = habit.doneToday || (style == UiStyle.MODERN && !habit.restToday)
+    val container = if (filled) MaterialTheme.colorScheme.primary else Color.Transparent
+    val content = if (filled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    val border = if (!filled) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null
+
+    Box {
+        Surface(
+            shape = CircleShape,
+            color = container,
+            contentColor = content,
+            border = border,
+            modifier = Modifier
+                .clip(CircleShape)
+                .combinedClickable(onClick = onCheckIn, onLongClick = { menu = true })
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 26.dp, vertical = 13.dp)
+            )
+        }
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            if (habit.restToday) {
+                DropdownMenuItem(
+                    text = { Text("Quitar descanso") },
+                    onClick = { onRest(); menu = false }
+                )
+            } else {
+                DropdownMenuItem(
+                    text = { Text(if (avail > 0) "Tomar descanso · $avail disponible(s)" else "Sin descansos (3 días seguidos)") },
+                    enabled = avail > 0 && !habit.doneToday,
+                    onClick = { onRest(); menu = false }
+                )
+            }
         }
     }
 }
@@ -277,6 +352,9 @@ private fun HabitSheetContent(
             .padding(horizontal = 16.dp)
             .padding(bottom = 24.dp)
     ) {
+        val context = LocalContext.current
+        var showTime by remember { mutableStateOf(false) }
+
         val title = if (state.userName.isBlank()) "Mis hábitos" else "Hola, ${state.userName}"
         Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = 8.dp))
         Text(
@@ -337,6 +415,49 @@ private fun HabitSheetContent(
         Spacer(Modifier.height(10.dp))
         OutlinedButton(onClick = onAddClick, modifier = Modifier.fillMaxWidth()) {
             Text("+ Agregar hábito")
+        }
+
+        Spacer(Modifier.height(20.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Recordatorio diario", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = if (state.reminderEnabled)
+                        "Todos los días · %02d:%02d".format(state.reminderHour, state.reminderMinute)
+                    else "Desactivado",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (state.reminderEnabled) {
+                OutlinedButton(onClick = { showTime = true }) {
+                    Text("%02d:%02d".format(state.reminderHour, state.reminderMinute))
+                }
+                Spacer(Modifier.width(8.dp))
+            }
+            Switch(
+                checked = state.reminderEnabled,
+                onCheckedChange = {
+                    state.setReminder(it, state.reminderHour, state.reminderMinute)
+                    ReminderScheduler.apply(context)
+                }
+            )
+        }
+
+        if (showTime) {
+            TimePickerDialog(
+                initialHour = state.reminderHour,
+                initialMinute = state.reminderMinute,
+                onConfirm = { h, m ->
+                    state.setReminder(true, h, m)
+                    ReminderScheduler.apply(context)
+                    showTime = false
+                },
+                onDismiss = { showTime = false }
+            )
         }
     }
 }
@@ -422,5 +543,33 @@ fun AddHabitDialog(
             TextButton(onClick = { onCreate(name, emoji) }, enabled = name.isNotBlank()) { Text("Crear") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimePickerDialog(
+    initialHour: Int,
+    initialMinute: Int,
+    onConfirm: (Int, Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val timeState = rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = true
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = { onConfirm(timeState.hour, timeState.minute) }) { Text("Listo") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        title = { Text("Hora del recordatorio") },
+        text = {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                TimePicker(state = timeState)
+            }
+        }
     )
 }
